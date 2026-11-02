@@ -1,0 +1,248 @@
+{
+  "info": {
+    "_postman_id": "b7f80a8d-7ee7-4f6d-aaf2-70b5e8e7072d",
+    "name": "Backend Tutorial API",
+    "description": "Postman requests for the Node.js, Express, MongoDB, authentication, and posts CRUD assignment. Run the requests in order. Register saves the JWT; Create Post saves the post ID.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "postId", "value": "" },
+    { "key": "testEmail", "value": "student.backend.demo@example.com" },
+    { "key": "testPassword", "value": "DemoPass123!" }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns 200 OK', function () { pm.response.to.have.status(200); });",
+              "pm.test('Server reports healthy', function () { pm.expect(pm.response.json().message).to.eql('Server is healthy'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Register User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Backend Student\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Account created with 201', function () { pm.response.to.have.status(201); });",
+              "const data = pm.response.json();",
+              "pm.test('Response contains a token and user', function () { pm.expect(data.token).to.be.a('string'); pm.expect(data.user.email).to.eql(pm.collectionVariables.get('testEmail')); });",
+              "if (data.token) { pm.collectionVariables.set('token', data.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns current user', function () { pm.response.to.have.status(200); });",
+              "pm.test('Password is not returned', function () { pm.expect(pm.response.json().user).to.not.have.property('password'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Create Post",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"My first backend post\",\n  \"content\": \"I created my first API using Node.js, Express, and MongoDB.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/posts"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Post created with 201', function () { pm.response.to.have.status(201); });",
+              "const data = pm.response.json();",
+              "pm.test('Post contains title and content', function () { pm.expect(data.post.title).to.eql('My first backend post'); pm.expect(data.post.content).to.be.a('string'); });",
+              "if (data.post && data.post._id) { pm.collectionVariables.set('postId', data.post._id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Get All My Posts",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/posts"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns posts with 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Response includes a posts array', function () { pm.expect(pm.response.json().posts).to.be.an('array'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Get One Post",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/posts/{{postId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns selected post with 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Returned ID matches requested ID', function () { pm.expect(pm.response.json().post._id).to.eql(pm.collectionVariables.get('postId')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Update Post",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated backend post\",\n  \"content\": \"The update API is working correctly.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/posts/{{postId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Post updated with 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Updated title is returned', function () { pm.expect(pm.response.json().post.title).to.eql('Updated backend post'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Delete Post",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/posts/{{postId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Post deleted with 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Success message is returned', function () { pm.expect(pm.response.json().success).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Login User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login succeeds with 200', function () { pm.response.to.have.status(200); });",
+              "const data = pm.response.json();",
+              "if (data.token) { pm.collectionVariables.set('token', data.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Logout User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/auth/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout succeeds with 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Logout confirmation is returned', function () { pm.expect(pm.response.json().success).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
